@@ -2,6 +2,11 @@
 
 Core of Lite&easy database for the same interface of any implementation.
 The same interface can be used in Node, Web, Mobile, Server and Develop applications.
+Not create any database structure, just use it.
+
+> I recommend use this tool exclusively for developing.
+
+Include types for TypeScript.
 
 ## API interface
 
@@ -22,14 +27,26 @@ await update("collection1", idOfRow, { ...myRow1, update: 1 });
 await remove("collection1", idOfRow); // only one row
 ```
 
+## Example of use
+
+```js
+import { select, update } from "easy-db-browser";
+
+// Save nickname 
+await update("myAppName", "nickname", nickname);
+
+// Load nickname
+const nickname = await select("myAppName", "nickname");
+```
+
 ## Your implementation for this interface
 
 ```js
-import easyDBCore from "easy-db-core";
+import easyDB from "easy-db-core";
 
-type Data = { [id: number | string]: any };
+type Data = { [id: string]: any };
 
-export default const easyDBInstance = easyDBCore({
+export const { insert, select, update, remove } = easyDB({
     async saveCollection(name: string, data: Data) {
         // code for save collection
     },

@@ -1,11 +1,11 @@
 {
     "name": "easy-db-core",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Core for Lite&easy database.",
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "scripts": {
-        "build": "tsc --declaration",
+        "build": "tsc",
         "test": "mocha -r ts-node/register tests/**/*.spec.ts",
         "prepublish": "npm run build"
     },
@@ -21,7 +21,8 @@
     "keywords": [
         "easy&lite",
         "cross platform",
-        "database"
+        "database",
+        "TypeScript"
     ],
     "author": "Filip Paulů <ing.fenix@seznam.cz>",
     "repository": {
