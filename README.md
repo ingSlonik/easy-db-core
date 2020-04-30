@@ -1,5 +1,7 @@
 # Easy DB Core
 
+> **Deprecated repository.** Use [easy-db](https://github.com/ingSlonik/easy-db) instead.
+
 Core of Lite&easy database for the same interface of any implementation.
 The same interface can be used in Node, Web, Mobile, Server and Develop applications.
 Not create any database structure, just use it.
