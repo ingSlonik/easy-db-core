@@ -1,6 +1,5 @@
-// @flow
-
 import queue from "./queue";
+import { getDataWithReplacedFiles, replaceFileData, removeUpdatedFiles } from "./file";
 
 type CollectionConfiguration = {
     lastId: number,
@@ -10,11 +9,14 @@ type Configuration = {
     [collectionName: string]: CollectionConfiguration,
 };
 
-export type Data = { [id: string]: any };
+export type Row = any;
+export type Data = { [id: string]: Row };
 
 export type Backend = {
     saveCollection: (name: string, data: Data) => Promise<void>,
     loadCollection: (name: string) => Promise<null | Data>,
+    saveFile?: (base46: string) => Promise<string>,
+    removeFile?: (path: string) => Promise<void>,
 };
 
 // globals for easyDB
@@ -68,13 +70,17 @@ async function setData(backend: Backend, collectionName: string, data: Data): Pr
 
 // API
 
-async function insert(backend: Backend, collection: string, row: any): Promise<string> {
+async function insert(backend: Backend, collection: string, row: Row): Promise<string> {
     easyDBQueue = queue(easyDBQueue, async () => {
         const configuration = await getConfiguration(backend, collection);
         const wholeCollection = await getData(backend, collection);
 
         const newId = configuration.lastId + 1;
-        wholeCollection[newId] = row;
+        if (typeof backend.saveFile === "function") {
+            wholeCollection[newId] = await replaceFileData(row, backend.saveFile);
+        } else {
+            wholeCollection[newId] = row;
+        }
         await setConfiguration(backend, collection, { ...configuration, lastId: newId });
         await setData(backend, collection, wholeCollection);
 
@@ -84,15 +90,23 @@ async function insert(backend: Backend, collection: string, row: any): Promise<s
     return await easyDBQueue;
 }
 
-async function select(backend: Backend, collection: string, id: null | string): Promise<any> {
+async function select(backend: Backend, collection: string, id: null | string): Promise<null | Row> {
     easyDBQueue = queue(easyDBQueue, async () => {
         const wholeCollection = await getData(backend, collection);
 
         if (id === null) {
-            return wholeCollection;
+            if (typeof backend.saveFile === "function") {
+                return getDataWithReplacedFiles(wholeCollection);
+            } else {
+                return wholeCollection;
+            }
         } else {
             if (id in wholeCollection) {
-                return wholeCollection[id];
+                if (typeof backend.saveFile === "function") {
+                    return getDataWithReplacedFiles(wholeCollection[id]);
+                } else {
+                    return wholeCollection[id];
+                }
             } else {
                 return null;
             }
@@ -102,10 +116,16 @@ async function select(backend: Backend, collection: string, id: null | string): 
     return await easyDBQueue;
 }
 
-async function update(backend: Backend, collection: string, id: string, row: any) {
+async function update(backend: Backend, collection: string, id: string, row: Row) {
     easyDBQueue = queue(easyDBQueue, async () => {
         const wholeCollection = await getData(backend, collection);
-        wholeCollection[id] = row;
+        if (typeof backend.saveFile === "function" && typeof backend.removeFile === "function") {
+            const rowWithReplacedFileData = await replaceFileData(row, backend.saveFile);
+            await removeUpdatedFiles(rowWithReplacedFileData, wholeCollection[id], backend.removeFile);
+            wholeCollection[id] = rowWithReplacedFileData;
+        } else {
+            wholeCollection[id] = row;
+        }
         await setData(backend, collection, wholeCollection);
     });
 
@@ -115,6 +135,10 @@ async function update(backend: Backend, collection: string, id: string, row: any
 async function remove(backend: Backend, collection: string, id: string) {
     easyDBQueue = queue(easyDBQueue, async () => {
         const wholeCollection = await getData(backend, collection);
+
+        if (typeof backend.removeFile === "function") {
+            await removeUpdatedFiles(wholeCollection[id], null, backend.removeFile);
+        }
 
         delete wholeCollection[id];
 
@@ -128,13 +152,13 @@ async function remove(backend: Backend, collection: string, id: string) {
 
 export default (backend: Backend) => {
     return {
-        async insert(collection: string, row: any) {
+        async insert(collection: string, row: Row) {
             return await insert(backend, collection, row);
         }, 
         async select(collection: string, id?: string) {
             return await select(backend, collection, typeof id === "string" ? id : null);
         },
-        async update(collection: string, id: string, row: any) {
+        async update(collection: string, id: string, row: Row) {
             return await update(backend, collection, id, row);
         },
         async remove(collection: string, id: string) {

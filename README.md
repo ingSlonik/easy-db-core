@@ -54,15 +54,13 @@ configure({ fileFolder: "./files", fileUrl: "/files" });
 // Save user with picture 
 await update("myAppName", "user", {
     name: "Example User",
-    photo: {
-        // any file in base64
-        url: "data:image/png;base64,iVB...YI=",
-    }
+    // any file in base64
+    photo: "data:image/png;base64,iVB...YI=",
 });
 
 // Load with picture
 const user = await select("myAppName", "user");
-// user = { name: "Example User", photo: { url: "/files/1f6bef21.png" } }
+// user = { name: "Example User", photo: "/files/1f6bef21.png" }
 ```
 
 
